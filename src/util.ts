@@ -70,15 +70,38 @@ export function analyse(raw: string) {
             .replace(aliases_regex, (match) => config.aliases[match as keyof typeof config.aliases])
     );
 
+    const terms = config.terms.map((term) => [...segmenter.segment(term.toLowerCase())].map((x) => x.segment));
+    const max_term_length = Math.max(...terms.map((term) => term.length));
+
     const tags = ["@", "#", "$"];
 
     const segments = [...segmenter.segment(normalized)];
 
     const words = [];
 
-    for (let i = 0; i < segments.length; i++) {
+    outer: for (let i = 0; i < segments.length; i++) {
+        for (let j = max_term_length - 1; j > 0; j--) {
+            const potential = segments.slice(i, i + j + 1).map((x) => x.segment);
+
+            const match = terms
+                .filter((term) => term.length === potential.length)
+                .find((term) => term.every((s, i) => s === potential[i]));
+
+            if (match) {
+                words.push(match.join(""));
+
+                i += j + 1;
+
+                continue outer;
+            }
+        }
+
         // twitter handle, hashtag, cashtag
-        if (tags.includes(segments[i].segment) && segments[i + 1]?.isWordLike) {
+        if (
+            tags.includes(segments[i].segment) &&
+            segments[i + 1]?.isWordLike &&
+            Number.isNaN(Number(segments[i + 1].segment))
+        ) {
             words.push(segments[i].segment + segments[i + 1].segment);
 
             i++;

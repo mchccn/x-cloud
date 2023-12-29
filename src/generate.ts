@@ -16,7 +16,11 @@ async function render(name: string, table: Record<string, number>, width: number
         cloud()
             .size([width, height])
             .canvas(() => createCanvas(width, height) as any)
-            .words(Object.entries(table).map(([text, size]) => ({ text, size })))
+            .words(
+                Object.entries(table)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([text, size]) => ({ text, size }))
+            )
             .padding((d) => 2 + Math.log2(d.size ?? 1))
             .rotate(0)
             .font("Impact")
