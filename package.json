@@ -1,14 +1,35 @@
 {
+    "name": "shenanigans",
+    "private": true,
+    "version": "0.0.1",
+    "main": "",
+    "license": "MIT",
+    "type": "module",
+    "scripts": {
+        "build": "webpack",
+        "dev": "webpack --watch",
+        "deploy": "vercel --prod",
+        "serve": "serve app/"
+    },
+    "dependencies": {
+        "@types/toastify-js": "^1.12.3",
+        "canvas": "^2.11.2",
+        "cli-progress": "^3.12.0",
+        "d3": "^7.8.5",
+        "d3-cloud": "^1.2.7",
+        "opencc-js": "^1.0.5",
+        "toastify-js": "^1.12.0"
+    },
     "devDependencies": {
+        "@types/cli-progress": "^3.11.5",
         "@types/d3": "^7.4.3",
         "@types/d3-cloud": "^1.2.9",
         "@types/node": "^20.10.5",
-        "typescript": "^5.3.3"
-    },
-    "name": "shenanigans",
-    "version": "1.0.0",
-    "main": "index.js",
-    "license": "MIT",
-    "type": "module",
-    "dependencies": {}
+        "@types/opencc-js": "^1.0.3",
+        "serve": "^14.2.1",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.3.3",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4"
+    }
 }

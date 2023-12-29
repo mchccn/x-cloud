@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>word cloud</title>
+        <script src="./dist/index.js" async defer></script>
+        <script src="twitter.widgets.js" async defer></script>
+        <link rel="stylesheet" href="toastify.css" />
+        <style>
+            * {
+                margin: 0;
+                box-sizing: border-box;
+            }
+
+            html {
+                height: 100%;
+                font-family: sans-serif;
+            }
+
+            body {
+                height: 100%;
+                display: flex;
+                overflow: hidden;
+            }
+
+            section {
+                display: grid;
+                overflow: scroll;
+                flex: 1;
+            }
+
+            section > div {
+                height: 100vh;
+                display: grid;
+                place-items: center;
+            }
+
+            article {
+                border-left: 2px solid #efefef;
+                padding: 1rem;
+                resize: horizontal;
+                overflow: scroll;
+                min-width: 584px;
+                width: 584px;
+                max-width: 584px;
+            }
+
+            .tooltip {
+                position: absolute;
+                pointer-events: none;
+                padding: 0.25rem;
+                background-color: white;
+                border: 1px solid #aaaaaa;
+                border-radius: 2px;
+                font-family: sans-serif;
+            }
+
+            text {
+                pointer-events: none;
+            }
+
+            rect {
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <section></section>
+        <article>
+            <p>click a word</p>
+        </article>
+    </body>
+</html>

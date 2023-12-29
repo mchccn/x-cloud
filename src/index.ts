@@ -1,21 +1,14 @@
 import { readFile, writeFile } from "fs/promises";
-import "../../data.js";
+import { inspect } from "util";
 import config from "../config.json" assert { type: "json" };
+import _data from "../data.json" assert { type: "json" };
+import _state from "../state.json" assert { type: "json" };
+import { Data, ONE_WEEK, RFC1738, State, analyse, freq_table } from "./util.js";
 
-// https://stackoverflow.com/a/44774554/18244921
-function RFC1738(string: string) {
-    return encodeURIComponent(string)
-        .replace(/!/g, "%21")
-        .replace(/'/g, "%27")
-        .replace(/\(/g, "%28")
-        .replace(/\)/g, "%29")
-        .replace(/\*/g, "%2A");
-}
+const data = _data as Data;
+const state = _state as State;
 
-// https://github.com/sindresorhus/escape-string-regexp
-function escapeR(string: string) {
-    return string.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&").replace(/-/g, "\\x2d");
-}
+const new_state: State = Object.assign({}, state);
 
 const input = await readFile("input.txt", "utf8");
 const headers = Object.fromEntries(
@@ -27,21 +20,45 @@ const headers = Object.fromEntries(
 
 const target = config.target_user;
 
-const following: number[] = await fetch(`https://api.twitter.com/1.1/friends/ids.json?screen_name=${target}`, {
-    headers,
-})
-    .then((res) => res.json())
-    .then((json) => json.ids);
+const following: string[] =
+    !state.following.length || Date.now() - state.last_updated > ONE_WEEK
+        ? await fetch(`https://api.twitter.com/1.1/friends/ids.json?screen_name=${target}&stringify_ids=true`, {
+              headers,
+          })
+              .then((res) => res.json())
+              .then((json) => json.ids)
+        : state.following;
+
+console.log(`following ${following.length} people`);
+
+new_state.following = following;
+
+const needs_fetch = following.every((x) => state.already_fetched.includes(x))
+    ? following
+    : following.filter((x) => !state.already_fetched.includes(x));
+
+if (needs_fetch === following) new_state.already_fetched = [];
+
+console.log(
+    `already fetched ${following.length - needs_fetch.length} out of ${following.length} (${(
+        ((following.length - needs_fetch.length) / following.length) *
+        100
+    ).toFixed(1)}%)`
+);
 
 const tweets = [];
 
-outer: for (const id of following) {
+const fetched_this_round = new Set<string>();
+
+outer: for (const id of needs_fetch) {
     for (let i = 0, cursor = undefined; i < config.timeline_pages_count; i++) {
+        console.log(`fetching ${id} (page ${i + 1})`);
+
         try {
             const e: any = await fetch(
                 `https://twitter.com/i/api/graphql/V1ze5q3ijDS1VeLwLY0m7g/UserTweets?variables=${RFC1738(
                     JSON.stringify({
-                        userId: id.toString(),
+                        userId: id,
                         count: 20,
                         cursor,
                         includePromotedContent: false,
@@ -79,6 +96,8 @@ outer: for (const id of following) {
                 }
             ).then((res) => res.json());
 
+            if (e.errors?.length) throw new Error(e.errors[0].message);
+
             const entries = e.data.user.result.timeline_v2.timeline.instructions.find(
                 (x: any) => x.type === "TimelineAddEntries"
             ).entries;
@@ -86,6 +105,8 @@ outer: for (const id of following) {
             tweets.push(...entries.filter((x: any) => x.entryId.startsWith("tweet")));
 
             cursor = entries.at(-1).content.value;
+
+            fetched_this_round.add(id);
         } catch (e) {
             if ((e as Error).message.includes("Rate limit exceeded")) {
                 console.error("Rate limit exceeded");
@@ -93,48 +114,87 @@ outer: for (const id of following) {
                 break outer;
             }
 
+            if ((e as Error).message.includes("Could not authenticate you")) {
+                console.error("Bad auth");
+
+                break outer;
+            }
+
+            fetched_this_round.add(id); // malformed response, count as fetched
+
             break;
         }
     }
 }
 
-const words = [];
+new_state.already_fetched.push(...[...fetched_this_round]);
 
-const replaceR = new RegExp(Object.keys(config.replaces).map(escapeR).join("|"), "g");
-const aliasesR = new RegExp("\\b(" + Object.keys(config.aliases).map(escapeR).join("|") + ")\\b", "g");
-
-const segmenter = new Intl.Segmenter(["en-US", "zh"], {
-    granularity: "word",
-    localeMatcher: "lookup",
-});
+const english_tweets = [];
+const chinese_tweets = [];
+const english_cloud = [];
+const chinese_cloud = [];
 
 for (const tweet of tweets) {
-    const raw: string = tweet.content.itemContent.tweet_results.result.legacy.full_text;
+    const data =
+        tweet.content.itemContent.tweet_results.result.legacy ??
+        tweet.content.itemContent.tweet_results.result.tweet.legacy;
 
-    const normalized = raw
-        .toLowerCase()
-        .replace(replaceR, (match) => {
-            return config.replaces[match as keyof typeof config.replaces];
-        })
-        .replace(aliasesR, (match) => {
-            return config.aliases[match as keyof typeof config.aliases];
-        });
+    if (!data) {
+        console.log("no data?", inspect(tweet, undefined, Infinity, true));
 
-    words.push(
-        ...[...segmenter.segment(normalized)]
-            .filter((x) => x.isWordLike && Number.isNaN(Number(x.segment)))
-            .map((x) => x.segment)
-            .filter((x) => !config.ignore_list.includes(x))
-    );
+        continue;
+    }
+
+    const raw: string = data.full_text;
+
+    const to_store = {
+        tweet_id: data.id_str,
+        user_id: data.user_id_str,
+        created_at: Math.floor(new Date(data.created_at).getTime() / 1000), // unix timestamp
+        full_text: data.full_text,
+    };
+
+    const { is_chinese, words } = analyse(raw);
+
+    if (is_chinese) {
+        chinese_tweets.push(to_store);
+        chinese_cloud.push(...words);
+    } else {
+        english_tweets.push(to_store);
+        english_cloud.push(...words);
+    }
 }
 
-const freqt = words.reduce((map, word) => map.set(word, (map.get(word) ?? 0) + 1), new Map());
+const english_freq = freq_table(english_cloud);
+const chinese_freq = freq_table(chinese_cloud);
 
-//@ts-ignore
-globalThis.WORD_DATA = globalThis.WORD_DATA ?? {};
+new_state.last_updated = Date.now();
 
-//@ts-ignore
-globalThis.WORD_DATA[target] = Object.fromEntries([...freqt.entries()]);
+await writeFile("state.json", JSON.stringify(new_state, null, 4), "utf8");
 
-//@ts-ignore
-await writeFile("data.js", `globalThis.WORD_DATA = ${JSON.stringify(globalThis.WORD_DATA)};`, "utf8");
+const new_data = {
+    english_tweets: data.english_tweets.concat(english_tweets),
+    chinese_tweets: data.chinese_tweets.concat(chinese_tweets),
+    english_freq: Object.entries(english_freq).reduce((freq, [key, value]) => {
+        if (key in freq) freq[key] += value;
+        else freq[key] = value;
+
+        return freq;
+    }, data.english_freq),
+    chinese_freq: Object.entries(chinese_freq).reduce((freq, [key, value]) => {
+        if (key in freq) freq[key] += value;
+        else freq[key] = value;
+
+        return freq;
+    }, data.chinese_freq),
+};
+
+await writeFile("data.json", JSON.stringify(new_data, null, 4), "utf8");
+
+if (new_state.already_fetched.length !== new_state.following.length) {
+    process.exit(1);
+}
+
+console.log("done fetching");
+
+process.exit(0);
