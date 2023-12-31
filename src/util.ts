@@ -20,6 +20,13 @@ export type State = { last_updated: number; following: string[]; already_fetched
 // https://ayaka.shn.hk/hanregex/
 export const HAN_REGEX = /[\p{Unified_Ideograph}\u3006\u3007][\ufe00-\ufe0f\u{e0100}-\u{e01ef}]?/gmu;
 
+// https://gist.github.com/ryanmcgrath/982242
+export const HIRAGANA_REGEX =
+    /[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B/gmu;
+
+// matches all ascii strings
+export const ALL_ASCII = /^[\x00-\x7F]+$/;
+
 export const ONE_WEEK = 1000 * 60 * 60 * 24 * 7;
 
 // https://stackoverflow.com/a/44774554/18244921
@@ -61,7 +68,6 @@ export const segmenter = new Intl.Segmenter(["en-US", "zh"], {
 });
 
 export function analyse(raw: string) {
-    // currently not removing links, mentions, or "RT" if it was a retweet
     const normalized = traditional_to_simplfiied(
         raw
             .toLowerCase()
@@ -125,11 +131,7 @@ export function analyse(raw: string) {
         }
 
         // regular word
-        if (
-            segments[i].isWordLike &&
-            Number.isNaN(Number(segments[i].segment)) &&
-            !config.ignore_list.includes(segments[i].segment)
-        ) {
+        if (segments[i].isWordLike && Number.isNaN(Number(segments[i].segment))) {
             words.push(segments[i].segment);
 
             continue;
@@ -137,7 +139,22 @@ export function analyse(raw: string) {
     }
 
     const is_chinese =
-        words.filter((x) => HAN_REGEX.test(x)).length > Math.floor(words.length * config.hanzi_percentage);
+        words.filter((x) => !!x.match(HAN_REGEX)).length > Math.floor(words.length * config.hanzi_percentage);
 
-    return { is_chinese, words: [...new Set(words)] };
+    const unique_words = [
+        ...new Set(words.map((w) => (w in config.aliases ? config.aliases[w as keyof typeof config.aliases] : w))),
+    ];
+
+    return {
+        is_chinese,
+        words: unique_words.filter(
+            (w) =>
+                (config.ignore_all_hanzi ? !w.match(HAN_REGEX) : true) &&
+                (config.ignore_all_hiragana ? !w.match(HIRAGANA_REGEX) : true) &&
+                Number.isNaN(Number(w.replaceAll(",", ""))) &&
+                (!w.match(HAN_REGEX) && !w.match(HIRAGANA_REGEX) ? w.length > 2 : true) &&
+                !!w.match(ALL_ASCII) &&
+                !config.ignore_list.includes(w)
+        ),
+    };
 }
