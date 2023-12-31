@@ -74,6 +74,7 @@ export function analyse(raw: string) {
             .replace(/https?:\/\/t.co\/[a-zA-Z0-9\.-]*/g, "") // remove all t.co urls
             .replace(replaces_regex, (match) => config.replaces[match as keyof typeof config.replaces])
             .replace(aliases_regex, (match) => config.aliases[match as keyof typeof config.aliases])
+            .replace(/(\w)'s/g, "$1 is") // pretty good bet to handle most contractions
     );
 
     const terms = config.terms.map((term) => [...segmenter.segment(term.toLowerCase())].map((x) => x.segment));
@@ -151,7 +152,9 @@ export function analyse(raw: string) {
             (w) =>
                 (config.ignore_all_hanzi ? !w.match(HAN_REGEX) : true) &&
                 (config.ignore_all_hiragana ? !w.match(HIRAGANA_REGEX) : true) &&
-                Number.isNaN(Number(w.replaceAll(",", ""))) &&
+                Number.isNaN(Number(w.replace(/[,-]/g, ""))) && // remove numbers
+                Number.isNaN(Number(w.replaceAll(",", "").slice(0, -1))) && // 150m, 1b, etc
+                Number.isNaN(Number(w.replaceAll(",", "").slice(0, -3))) && // 1ETH, 5.6BTC, etc
                 (!w.match(HAN_REGEX) && !w.match(HIRAGANA_REGEX) ? w.length > 2 : true) &&
                 !!w.match(ALL_ASCII) &&
                 !config.ignore_list.includes(w)

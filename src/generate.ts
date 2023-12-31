@@ -10,6 +10,14 @@ async function render(name: string, table: Record<string, number>, width: number
 
     bar.start(Object.keys(table).length, 0);
 
+    function computeFontSize(d: cloud.Word) {
+        const x = d.size!;
+
+        if (x <= 25) return 0.06 * (x + 11) ** 2 - 5.26;
+
+        return 10 * Math.sqrt(x - 20) + 50.13932022;
+    }
+
     const out: cloud.Word[] = [];
 
     const layout = await new Promise<cloud.Word[]>((resolve) =>
@@ -24,7 +32,7 @@ async function render(name: string, table: Record<string, number>, width: number
             .padding((d) => 2 + Math.log2(d.size ?? 1))
             .rotate(0)
             .font("Impact")
-            .fontSize((d) => 3 + 60 * Math.log10(d.size! + 1))
+            .fontSize((d) => 12 * Math.sqrt(d.size!) + 1.25)
             .on("word", (word) => (out.push(word), bar.increment()))
             .on("end", (words) => resolve(words))
             .start()
