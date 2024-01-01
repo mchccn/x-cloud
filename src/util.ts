@@ -1,4 +1,5 @@
 import * as OpenCC from "opencc-js";
+import pluralize from "pluralize";
 import config from "../config.json" assert { type: "json" };
 
 export type DataTweet = {
@@ -67,7 +68,16 @@ export const segmenter = new Intl.Segmenter(["en-US", "zh"], {
     localeMatcher: "lookup",
 });
 
-export function analyse(raw: string) {
+config.ignore_list = config.ignore_list.flatMap((word) => [
+    word,
+    pluralize(word, 0),
+    word + "ing",
+    word.slice(0, -1) + "ing",
+    word + "d",
+    word + "ed",
+]);
+
+export function analyse(raw: string, { no_filter }: { no_filter?: boolean } = { no_filter: false }) {
     const normalized = traditional_to_simplfiied(
         raw
             .toLowerCase()
@@ -145,6 +155,8 @@ export function analyse(raw: string) {
     const unique_words = [
         ...new Set(words.map((w) => (w in config.aliases ? config.aliases[w as keyof typeof config.aliases] : w))),
     ];
+
+    if (no_filter) return { is_chinese, words: unique_words };
 
     return {
         is_chinese,

@@ -24,7 +24,7 @@ async function render(name: string, table: Record<string, number>, width: number
             .padding((d) => 2 + Math.log2(d.size ?? 1))
             .rotate(0)
             .font("Impact")
-            .fontSize((d) => 10 * Math.sqrt(d.size!) + 1)
+            .fontSize((d) => 9 * Math.sqrt(d.size!) + 0.75)
             .on("word", (word) => (out.push(word), bar.increment()))
             .on("end", (words) => resolve(words))
             .start()
@@ -55,7 +55,11 @@ async function apigen(name: string, table: cloud.Word[], tweets: DataTweet[]) {
 
     for (const word of words) {
         const ids = [
-            ...new Set(tweets.filter((t) => analyse(t.full_text).words.includes(word)).map((t) => t.tweet_id)),
+            ...new Set(
+                tweets
+                    .filter((t) => analyse(t.full_text, { no_filter: true }).words.includes(word))
+                    .map((t) => t.tweet_id)
+            ),
         ];
 
         const json = await Promise.all(
@@ -106,8 +110,8 @@ async function apigen(name: string, table: cloud.Word[], tweets: DataTweet[]) {
     bar.stop();
 }
 
-const english_words = await render("english", data.english_freq, 1800, 1800);
-const chinese_words = await render("chinese", data.chinese_freq, 1800, 1800);
+const english_words = await render("english", data.english_freq, 900, 900);
+const chinese_words = await render("chinese", data.chinese_freq, 900, 900);
 
 await apigen("english", english_words, data.english_tweets);
 await apigen("chinese", chinese_words, data.chinese_tweets);
