@@ -24,7 +24,7 @@ async function render(name: string, table: Record<string, number>, width: number
             .padding((d) => 2 + Math.log2(d.size ?? 1))
             .rotate(0)
             .font("Impact")
-            .fontSize((d) => 12 * Math.sqrt(d.size!) + 1.25)
+            .fontSize((d) => 10 * Math.sqrt(d.size!) + 1)
             .on("word", (word) => (out.push(word), bar.increment()))
             .on("end", (words) => resolve(words))
             .start()
@@ -106,8 +106,8 @@ async function apigen(name: string, table: cloud.Word[], tweets: DataTweet[]) {
     bar.stop();
 }
 
-const english_words = await render("english", data.english_freq, 900, 900);
-const chinese_words = await render("chinese", data.chinese_freq, 900, 900);
+const english_words = await render("english", data.english_freq, 1800, 1800);
+const chinese_words = await render("chinese", data.chinese_freq, 1800, 1800);
 
 await apigen("english", english_words, data.english_tweets);
 await apigen("chinese", chinese_words, data.chinese_tweets);

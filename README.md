@@ -2,12 +2,8 @@ tool
 
 ## todo list
 
--   option to sort tweets in display
+-   filter out plural forms (-"s", -"es"), verb forms (-"ing"), past tense forms (-"d") somehow
 
 -   fetch time frame
 
--   possibly use different font
-
 -   refetch data ...
-
-https://bettertyped.github.io/react-zoom-pan-pinch/?path=/story/docs-props--page
