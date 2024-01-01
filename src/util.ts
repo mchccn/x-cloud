@@ -1,6 +1,16 @@
+import { readFileSync } from "fs";
 import * as OpenCC from "opencc-js";
 import pluralize from "pluralize";
+import cmc from "../cmc.json" assert { type: "json" };
 import config from "../config.json" assert { type: "json" };
+
+const ignore_list = new Set(
+    readFileSync(config.ignore_list_path, "utf8")
+        .toString()
+        .split("\n")
+        .map((x) => x.trim())
+        .flatMap((word) => [word, pluralize(word, 0), word + "ing", word.slice(0, -1) + "ing", word + "d", word + "ed"])
+);
 
 export type DataTweet = {
     tweet_id: string;
@@ -27,6 +37,9 @@ export const HIRAGANA_REGEX =
 
 // matches all ascii strings
 export const ALL_ASCII = /^[\x00-\x7F]+$/;
+
+// matches all fiat symbols
+export const FIAT_REGEX = new RegExp(cmc.fiat.map((x) => escape_regex(x.sign)).join("|"), "g");
 
 export const ONE_WEEK = 1000 * 60 * 60 * 24 * 7;
 
@@ -67,15 +80,6 @@ export const segmenter = new Intl.Segmenter(["en-US", "zh"], {
     granularity: "word",
     localeMatcher: "lookup",
 });
-
-config.ignore_list = config.ignore_list.flatMap((word) => [
-    word,
-    pluralize(word, 0),
-    word + "ing",
-    word.slice(0, -1) + "ing",
-    word + "d",
-    word + "ed",
-]);
 
 export function analyse(raw: string, { no_filter }: { no_filter?: boolean } = { no_filter: false }) {
     const normalized = traditional_to_simplfiied(
@@ -164,12 +168,11 @@ export function analyse(raw: string, { no_filter }: { no_filter?: boolean } = { 
             (w) =>
                 (config.ignore_all_hanzi ? !w.match(HAN_REGEX) : true) &&
                 (config.ignore_all_hiragana ? !w.match(HIRAGANA_REGEX) : true) &&
-                Number.isNaN(Number(w.replace(/[,-]/g, ""))) && // remove numbers
-                Number.isNaN(Number(w.replaceAll(",", "").slice(0, -1))) && // 150m, 1b, etc
-                Number.isNaN(Number(w.replaceAll(",", "").slice(0, -3))) && // 1ETH, 5.6BTC, etc
+                Number.isNaN(Number(w.replace(FIAT_REGEX, "").replace(/[kmbt,-]/g, ""))) && // remove numbers
                 (!w.match(HAN_REGEX) && !w.match(HIRAGANA_REGEX) ? w.length > 2 : true) &&
                 !!w.match(ALL_ASCII) &&
-                !config.ignore_list.includes(w)
+                w.replace(/[^a-z]/g, "").length > Math.floor(w.length * 0.6) && // must be more than 60% letters
+                !ignore_list.has(w)
         ),
     };
 }
