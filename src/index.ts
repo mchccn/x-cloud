@@ -68,25 +68,25 @@ outer: for (const id of needs_fetch) {
                     })
                 )}&features=${RFC1738(
                     JSON.stringify({
-                        responsive_web_graphql_exclude_directive_enabled: false,
+                        responsive_web_graphql_exclude_directive_enabled: true,
                         verified_phone_label_enabled: false,
-                        creator_subscriptions_tweet_preview_api_enabled: false,
-                        responsive_web_graphql_timeline_navigation_enabled: false,
+                        creator_subscriptions_tweet_preview_api_enabled: true,
+                        responsive_web_graphql_timeline_navigation_enabled: true,
                         responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
-                        c9s_tweet_anatomy_moderator_badge_enabled: false,
-                        tweetypie_unmention_optimization_enabled: false,
-                        responsive_web_edit_tweet_api_enabled: false,
-                        graphql_is_translatable_rweb_tweet_is_translatable_enabled: false,
-                        view_counts_everywhere_api_enabled: false,
-                        longform_notetweets_consumption_enabled: false,
+                        c9s_tweet_anatomy_moderator_badge_enabled: true,
+                        tweetypie_unmention_optimization_enabled: true,
+                        responsive_web_edit_tweet_api_enabled: true,
+                        graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+                        view_counts_everywhere_api_enabled: true,
+                        longform_notetweets_consumption_enabled: true,
                         responsive_web_twitter_article_tweet_consumption_enabled: false,
                         tweet_awards_web_tipping_enabled: false,
-                        freedom_of_speech_not_reach_fetch_enabled: false,
-                        standardized_nudges_misinfo: false,
-                        tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: false,
-                        rweb_video_timestamps_enabled: false,
-                        longform_notetweets_rich_text_read_enabled: false,
-                        longform_notetweets_inline_media_enabled: false,
+                        freedom_of_speech_not_reach_fetch_enabled: true,
+                        standardized_nudges_misinfo: true,
+                        tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+                        rweb_video_timestamps_enabled: true,
+                        longform_notetweets_rich_text_read_enabled: true,
+                        longform_notetweets_inline_media_enabled: true,
                         responsive_web_media_download_video_enabled: false,
                         responsive_web_enhance_cards_enabled: false,
                     })
@@ -135,26 +135,49 @@ const english_cloud = [];
 const chinese_cloud = [];
 
 for (const tweet of tweets) {
-    const data =
-        tweet.content.itemContent.tweet_results.result.legacy ??
-        tweet.content.itemContent.tweet_results.result.tweet.legacy;
+    const full_text =
+        tweet.content.itemContent.tweet_results.result.legacy?.retweeted_status_result?.result?.note_tweet
+            ?.note_tweet_results?.result?.text ??
+        tweet.content.itemContent.tweet_results.result.note_tweet?.note_tweet_results?.result?.text ??
+        tweet.content.itemContent.tweet_results.result.legacy?.retweeted_status_result?.result?.legacy?.full_text ??
+        tweet.content.itemContent.tweet_results.result.legacy?.full_text ??
+        tweet.content.itemContent.tweet_results.result.tweet?.legacy?.full_text;
 
-    if (!data) {
-        console.log("no data?", inspect(tweet, undefined, Infinity, true));
+    const id_str =
+        tweet.content.itemContent.tweet_results.result.legacy?.retweeted_status_result?.result?.legacy?.id_str ??
+        tweet.content.itemContent.tweet_results.result.legacy?.id_str ??
+        tweet.content.itemContent.tweet_results.result.tweet?.legacy?.id_str;
+
+    const user_id_str =
+        tweet.content.itemContent.tweet_results.result.legacy?.retweeted_status_result?.result?.legacy?.user_id_str ??
+        tweet.content.itemContent.tweet_results.result.legacy?.user_id_str ??
+        tweet.content.itemContent.tweet_results.result.tweet?.legacy?.user_id_str;
+
+    const created_at =
+        tweet.content.itemContent.tweet_results.result.legacy?.retweeted_status_result?.result?.legacy?.created_at ??
+        tweet.content.itemContent.tweet_results.result.legacy?.created_at ??
+        tweet.content.itemContent.tweet_results.result.tweet?.legacy?.created_at;
+
+    if (!full_text) {
+        console.log("no text?", inspect(tweet, undefined, Infinity, true));
 
         continue;
     }
 
-    const raw: string = data.full_text;
+    if (full_text.includes("…")) {
+        console.log("missing text?", inspect(tweet, undefined, Infinity, true));
+
+        continue;
+    }
 
     const to_store = {
-        tweet_id: data.id_str,
-        user_id: data.user_id_str,
-        created_at: Math.floor(new Date(data.created_at).getTime() / 1000), // unix timestamp
-        full_text: data.full_text,
+        tweet_id: id_str,
+        user_id: user_id_str,
+        created_at: Math.floor(new Date(created_at).getTime() / 1000),
+        full_text: full_text,
     };
 
-    const { is_chinese, words } = analyse(raw);
+    const { is_chinese, words } = analyse(full_text);
 
     if (is_chinese) {
         chinese_tweets.push(to_store);

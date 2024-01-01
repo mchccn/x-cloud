@@ -10,14 +10,6 @@ async function render(name: string, table: Record<string, number>, width: number
 
     bar.start(Object.keys(table).length, 0);
 
-    function computeFontSize(d: cloud.Word) {
-        const x = d.size!;
-
-        if (x <= 25) return 0.06 * (x + 11) ** 2 - 5.26;
-
-        return 10 * Math.sqrt(x - 20) + 50.13932022;
-    }
-
     const out: cloud.Word[] = [];
 
     const layout = await new Promise<cloud.Word[]>((resolve) =>
@@ -62,14 +54,49 @@ async function apigen(name: string, table: cloud.Word[], tweets: DataTweet[]) {
     bar.start(words.length, 0);
 
     for (const word of words) {
-        const ids = tweets.filter((t) => analyse(t.full_text).words.includes(word)).map((t) => t.tweet_id);
+        const ids = [
+            ...new Set(tweets.filter((t) => analyse(t.full_text).words.includes(word)).map((t) => t.tweet_id)),
+        ];
+
+        const json = await Promise.all(
+            ids.map((id) => {
+                const url = new URL(`https://cdn.syndication.twimg.com/tweet-result`);
+
+                url.searchParams.set("id", id);
+                url.searchParams.set("lang", "en");
+                url.searchParams.set(
+                    "features",
+                    [
+                        "tfw_timeline_list:",
+                        "tfw_follower_count_sunset:true",
+                        "tfw_tweet_edit_backend:on",
+                        "tfw_refsrc_session:on",
+                        "tfw_fosnr_soft_interventions_enabled:on",
+                        "tfw_show_birdwatch_pivots_enabled:on",
+                        "tfw_show_business_verified_badge:on",
+                        "tfw_duplicate_scribes_to_settings:on",
+                        "tfw_use_profile_image_shape_enabled:on",
+                        "tfw_show_blue_verified_badge:on",
+                        "tfw_legacy_timeline_sunset:true",
+                        "tfw_show_gov_verified_badge:on",
+                        "tfw_show_business_affiliate_badge:on",
+                        "tfw_tweet_edit_frontend:on",
+                    ].join(";")
+                );
+                url.searchParams.set("token", ((Number(id) / 1e15) * Math.PI).toString(6 ** 2).replace(/(0+|\.)/g, ""));
+
+                return fetch(url).then((res) =>
+                    res.headers.get("content-type")?.includes("application/json") ? res.json() : undefined
+                );
+            })
+        );
 
         await writeFile(
             `app/public/api/${name}/${word
                 .split("")
                 .map((c) => c.codePointAt(0))
                 .join("-")}.json`,
-            JSON.stringify(ids),
+            JSON.stringify(json.filter((x) => x !== undefined && x.__typename === "Tweet")),
             "utf8"
         );
 

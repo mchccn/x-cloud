@@ -7,3 +7,7 @@ tool
 -   fetch time frame
 
 -   possibly use different font
+
+-   refetch data ...
+
+https://bettertyped.github.io/react-zoom-pan-pinch/?path=/story/docs-props--page

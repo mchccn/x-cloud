@@ -35,3 +35,8 @@ rect {
 .react-tweet-theme > article > div > div > div > div {
     display: none;
 }
+
+.transform-wrapper-override {
+    width: 100% !important;
+    height: 100% !important;
+}

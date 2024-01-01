@@ -1,25 +1,18 @@
-import cloud from "d3-cloud";
-import { Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useContext } from "react";
 import { toast } from "react-toastify";
-import { SelectionContext } from "../SelectionContext";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { colors } from "../constants";
+import { DataContext, ResponseData } from "../contexts/DataContext";
+import { LanguageContext } from "../contexts/LanguageContext";
+import { SelectionContext } from "../contexts/SelectionContext";
 
 export interface WordCloudTabProps {
     set_selection: Dispatch<SetStateAction<{ language: string; selection: string } | undefined>>;
     set_tooltip: Dispatch<SetStateAction<string | undefined>>;
+    set_language: Dispatch<SetStateAction<string>>;
 }
 
 const ctx = document.createElement("canvas").getContext("2d")!;
-
-const colors = ["#F12046", "#009DDC", "#F26430", "#6761A8", "#009B72"];
-
-type ResponseData = {
-    language: string;
-    svg: {
-        width: number;
-        height: number;
-        words: (cloud.Word & { value: number })[];
-    };
-};
 
 function create_svg(
     data: ResponseData,
@@ -88,42 +81,80 @@ function create_svg(
     );
 }
 
-export function WordCloudTab({ set_selection, set_tooltip }: WordCloudTabProps) {
-    const [loaded, set_loaded] = useState(false);
-
-    const [english, set_english] = useState<ResponseData>();
-    const [chinese, set_chinese] = useState<ResponseData>();
-
+export function WordCloudTab({ set_selection, set_tooltip, set_language }: WordCloudTabProps) {
+    const language = useContext(LanguageContext);
     const selection = useContext(SelectionContext);
-
-    useEffect(() => {
-        Promise.all([
-            fetch("english.json").then((res) => res.json()),
-            fetch("chinese.json").then((res) => res.json()),
-        ]).then(([english, chinese]) => {
-            set_english(english);
-            set_chinese(chinese);
-
-            set_loaded(true);
-        });
-    }, []);
+    const data = useContext(DataContext);
 
     return (
-        <section className="tab grid overflow-scroll flex-1">
-            {loaded ? (
-                <>
-                    <div className="english h-screen grid place-items-center">
-                        {create_svg(english!, selection, set_selection, set_tooltip)}
-                    </div>
-                    <div className="chinese h-screen grid place-items-center">
-                        {create_svg(chinese!, selection, set_selection, set_tooltip)}
-                    </div>
-                </>
-            ) : (
-                <div className="h-screen grid place-items-center">
-                    <p>loading...</p>
-                </div>
-            )}
+        <section className="flex-1">
+            <div className="h-full w-full flex flex-col">
+                <TransformWrapper
+                    alignmentAnimation={{ disabled: true }}
+                    velocityAnimation={{ disabled: true }}
+                    centerOnInit={true}
+                    limitToBounds={false}
+                    disablePadding={true}
+                    centerZoomedOut={true}
+                    minScale={0.5}
+                    maxScale={10}
+                >
+                    {({ resetTransform, centerView, zoomIn, zoomOut }) => (
+                        <>
+                            {language in data ? (
+                                <TransformComponent wrapperClass="flex-1 transform-wrapper-override">
+                                    <div className="english grid place-items-center">
+                                        {create_svg(data[language], selection, set_selection, set_tooltip)}
+                                    </div>
+                                </TransformComponent>
+                            ) : (
+                                <div className="h-full grid place-content-center">
+                                    <p>unknown language</p>
+                                </div>
+                            )}
+                            <footer className="text-sm flex flex-row items-center justify-between px-4 py-2 border-t-2 border-neutral-100">
+                                <p>
+                                    language:{" "}
+                                    <select
+                                        className="border rounded-sm"
+                                        onChange={(e) => set_language(e.target.value)}
+                                        value={language}
+                                    >
+                                        {Object.keys(data).map((lang) => (
+                                            <option key={lang} value={lang}>
+                                                {lang}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </p>
+                                <div className="flex flex-row gap-4 items-center">
+                                    <button
+                                        className="w-16 cursor-pointer border px-2 py-1 rounded-sm"
+                                        onClick={() => zoomOut()}
+                                    >
+                                        -
+                                    </button>
+                                    <button
+                                        className="w-16 cursor-pointer border px-2 py-1 rounded-sm"
+                                        onClick={() => zoomIn()}
+                                    >
+                                        +
+                                    </button>
+                                    <button
+                                        className="w-16 cursor-pointer border px-2 py-1 rounded-sm"
+                                        onClick={() => {
+                                            resetTransform(0);
+                                            centerView(undefined, 0);
+                                        }}
+                                    >
+                                        reset
+                                    </button>
+                                </div>
+                            </footer>
+                        </>
+                    )}
+                </TransformWrapper>
+            </div>
         </section>
     );
 }
