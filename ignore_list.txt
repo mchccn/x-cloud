@@ -12,89 +12,60 @@ aave
 uniswap
 gemini
 bitmain
-ftx exchange
 kraken
 microstrategy
 synthetix
-galaxy digital
 stellar
-pantera capital
 square
-basic attention token
 theta
 consensys
 litecoin
-yearn finance
 circle
 compound
-draper associates
 crypto.com
-ark invest
 blockchain.com
 chainalysis
 blockfi
 coinshares
-polychain capital
 ledger
-coin market cap
-wrapped btc
-3iq bitcoin fund
 iohk
-a16z crypto
-blocktower capital
 metamask
 blockstream
-band protocol
 eos
 loopring
 tezos
 energi
 just
-prime trust
-consensys ventures
-singularity net
 bancor
-iexec rlc
-bit shares
 iota
 filcoin
 lisk
 celcius
-ocean protocol
 voyager
 curve
 messari
 decentraland
 bitpay
-the graph
 ziliqa
 blockdaemon
 coinlist
-huobi global
 elrond
 parsiq
 thorchain
-reserve rights token
 gnosis
 avalanche
 paxos
 kava
-sushi swap
 decred
 neo
-1 inch
 kusama
 holochain
-dapp radar
 blockfolio
 digifox
-arrington xrp capital
-redfox labs
 1confimation
 civic
 shakepay
 waves
-protocol labs
 hegic
 cosmos
 tron
@@ -102,106 +73,59 @@ shapeshift
 komodo
 stacks
 matic
-matrix patners
 satstreet
-raven coin
-blockchain foundary
 tellor
-blockchain capital
 orion
-bitcoin suisse
 balancer
-sequoia capital
 icon
 harmony
-amino capital
 digibyte
 qtum
 1kx
 uma
-xdai stake
 ledn.io
-hydro protocol
-union square ventures
-altair capital
 elliptic
 taxbit
 wanchain
 cream
 vechain
-angel list
 cumberland
 loki
-casper labs
-near protocol
-continue capital
 gv
-dragonfly capital
 serum
 ripple
-founders fund
-hydro labs
-jarvis network
-ceyuan ventures
 nano
-crypto finance group
-dfi. money
-cme ventures
-collaborative fund
 titanswap
 bitmart
-breyer capital
 solana
-digital currency group
 chainx
 nectar
 akropolis
-ethereum community fund
-protocol ventures
-frees fund
 bondly
 numerai
 frontier
-orion protocol
 tagomi
 b-cube.ai
-scalar capital
 ontology
-sv angel
 chagelly
-lightning labs
-dekrypt capital
 powerpool
-fenbushi capital
-maven 11 capital
 aragon
-l4 ventures
 falconswap
 ark
-hcm capital
 coti
 bitthumb
 verge
 covesting
-delta exchange
 tomochain
-hut 8 mining
-fbg capital
-blue yard
 unibright
 metastable
 datamine
 swipe
-origin protocol
 swerve
-oasis labs
 metronome
-vega protocol
-quant network
 nxm
 bakkt
 terra
-origin trail
 request
 protocols
 held
